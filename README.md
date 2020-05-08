@@ -2,7 +2,7 @@
 
 Build:
 
-     mvn clean package
+     ./mvnw clean package
 
 Run:
 
@@ -10,4 +10,4 @@ Run:
 
 Example call:
 
-      curl http://localhost:8080/delay?duration=2000
+     curl http://localhost:8080/delay?duration=2000
