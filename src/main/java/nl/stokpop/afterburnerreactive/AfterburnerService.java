@@ -30,7 +30,26 @@ public class AfterburnerService {
         return Mono.delay(Duration.ofMillis(requestDelayMillis)).then(Mono.defer(burnerMessageSupplier(startTime, requestDelayMillis)));
     }
 
-    private Supplier<? extends Mono<? extends BurnerMessage>> burnerMessageSupplier(long startTime, long requestDelayMillis) {
+    public Mono<BurnerMessage> delayWithSleep(int requestDelayMillis) {
+        long startTime = System.currentTimeMillis();
+        return Mono.defer(burnerMessageSupplierWithSleep(startTime, requestDelayMillis)).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Supplier<Mono<BurnerMessage>> burnerMessageSupplierWithSleep(long startTime, long requestDelayMillis) {
+        log.info("create with sleep in BurnerMessageSupplier, duration {}, startTime {}", requestDelayMillis, startTime);
+        return () -> {
+            try {
+                Thread.sleep(requestDelayMillis);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            log.info("mono with sleep just in BurnerMessageSupplier, duration {}, startTime {}", requestDelayMillis, startTime);
+            BurnerMessage burnerMessage = createBurnerMessage(startTime, requestDelayMillis);
+            return Mono.just(burnerMessage);
+        };
+    }
+
+    private Supplier<Mono<BurnerMessage>> burnerMessageSupplier(long startTime, long requestDelayMillis) {
         log.info("create in BurnerMessageSupplier, duration {}, startTime {}", requestDelayMillis, startTime);
         return () -> {
             log.info("mono just in BurnerMessageSupplier, duration {}, startTime {}", requestDelayMillis, startTime);
@@ -42,7 +61,11 @@ public class AfterburnerService {
     private BurnerMessage createBurnerMessage(long startTime, long requestDelayMillis) {
         long realDelayMillis = System.currentTimeMillis() - startTime;
         String msg = String.format("This was a delay of %s", requestDelayMillis);
-        return new BurnerMessage(msg, props.getAfterburnerName(), realDelayMillis);
+        return BurnerMessage.builder()
+            .message(msg)
+            .name(props.getAfterburnerName())
+            .durationInMillis(realDelayMillis)
+            .build();
     }
 
     public Mono<String> remoteCall(String path) {
@@ -54,7 +77,9 @@ public class AfterburnerService {
     }
 
     public Flux<String> remoteCallMany(String path, int count) {
-        Stream<String> paths = IntStream.range(0, count).mapToObj(i -> path.replace("XYZ", String.valueOf(i * 100)));
+        Stream<String> paths = IntStream
+            .range(0, count)
+            .mapToObj(i -> path.replace("XYZ", String.valueOf(i * 100)));
 
         return Flux.fromStream(paths)
             .parallel()
@@ -64,23 +89,34 @@ public class AfterburnerService {
     }
 
     public Mono<SystemInfo> systemInfo() {
-        Runtime runtime = Runtime.getRuntime();
+        return Mono.fromSupplier(createSystemInfo()).subscribeOn(Schedulers.boundedElastic());
+    }
 
-        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-        List<String> threadNames = threadSet.stream()
-            .map(t -> t.getName() + "-" + t.getState())
-            .sorted()
-            .collect(Collectors.toUnmodifiableList());
+    private Supplier<SystemInfo> createSystemInfo() {
+        return () -> {
 
-        SystemInfo systemInfo = SystemInfo.builder()
-            .availableProcessors(runtime.availableProcessors())
-            .freeMemory(runtime.freeMemory())
-            .maxMemory(runtime.maxMemory())
-            .totalMemory(runtime.totalMemory())
-            .threads(threadSet.size())
-            .threadNames(threadNames)
-            .build();
-        return Mono.just(systemInfo);
+            Exception exception = new Exception("check stacktrace");
+            log.error("stacktrace check!", exception);
 
+            log.info("create new system info");
+
+            Runtime runtime = Runtime.getRuntime();
+
+            Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+
+            List<String> threadNames = threadSet.stream()
+                .map(t -> t.getName() + "-" + t.getState())
+                .sorted()
+                .collect(Collectors.toUnmodifiableList());
+
+            return SystemInfo.builder()
+                .availableProcessors(runtime.availableProcessors())
+                .freeMemory(runtime.freeMemory())
+                .maxMemory(runtime.maxMemory())
+                .totalMemory(runtime.totalMemory())
+                .threads(threadSet.size())
+                .threadNames(threadNames)
+                .build();
+        };
     }
 }

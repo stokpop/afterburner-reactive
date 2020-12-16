@@ -26,6 +26,7 @@ public class AfterburnerConfig {
 
     @Bean
     WebClient webClient(WebClient.Builder builder) {
+
         HttpClient httpClient = HttpClient.create()
             .tcpConfiguration(client ->
                 client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 500)
@@ -51,9 +52,7 @@ public class AfterburnerConfig {
     ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(request -> {
             log.info("hi request {}", request.url());
-            return Mono.just(request).subscriberContext(context ->
-                context.put("stokpop-starttime", System.currentTimeMillis()));
-
+            return Mono.just(request).subscriberContext(context -> context.put("stokpop-starttime", System.currentTimeMillis()));
         });
     }
 
@@ -61,7 +60,7 @@ public class AfterburnerConfig {
         return ExchangeFilterFunction.ofResponseProcessor(response -> {
             log.info("hi response {}", response.statusCode());
             return Mono.just(response).subscriberContext( context -> {
-                log.info("duration millis: {}", System.currentTimeMillis() /*- (Long)context.get("stokpop-starttime")*/);
+                log.info("duration millis: {}", System.currentTimeMillis() - (Long)context.get("stokpop-starttime"));
                 return context;
             });
         });

@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.blockhound.BlockHound;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
@@ -13,6 +14,10 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 @SpringBootApplication
 @Log4j2
 public class AfterburnerReactiveApplication {
+
+	static {
+		BlockHound.install();
+	}
 
 	@Bean
 	RouterFunction<ServerResponse> routes(AfterburnerService afterburnerService) {
@@ -23,6 +28,11 @@ public class AfterburnerReactiveApplication {
 				request -> {
 					int requestDelayMillis = Integer.parseInt(request.queryParam("duration").orElse("100"));
 					return ok().body(afterburnerService.delay(requestDelayMillis), BurnerMessage.class);
+				})
+			.GET("/delay-sleep",
+				request -> {
+					int requestDelayMillis = Integer.parseInt(request.queryParam("duration").orElse("100"));
+					return ok().body(afterburnerService.delayWithSleep(requestDelayMillis), BurnerMessage.class);
 				})
 			.GET("/remote/call",
 				request -> {
