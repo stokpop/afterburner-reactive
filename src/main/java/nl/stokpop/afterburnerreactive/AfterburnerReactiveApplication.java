@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.blockhound.BlockHound;
 
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
@@ -16,7 +15,8 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 public class AfterburnerReactiveApplication {
 
 	static {
-		BlockHound.install();
+		// if this is enabled, the test freezes after "AfterburnerReactiveApplicationTests : No active profile set..."
+		// BlockHound.install();
 	}
 
 	@Bean

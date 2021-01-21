@@ -83,7 +83,7 @@ public class AfterburnerService {
 
         return Flux.fromStream(paths)
             .parallel()
-            .runOn(Schedulers.elastic())
+            .runOn(Schedulers.boundedElastic())
             .flatMap(this::remoteCall)
             .sequential();
     }
@@ -107,7 +107,7 @@ public class AfterburnerService {
             List<String> threadNames = threadSet.stream()
                 .map(t -> t.getName() + "-" + t.getState())
                 .sorted()
-                .collect(Collectors.toUnmodifiableList());
+                .collect(Collectors.toList());
 
             return SystemInfo.builder()
                 .availableProcessors(runtime.availableProcessors())

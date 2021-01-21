@@ -10,7 +10,7 @@ public class AfterburnerProperties {
     private final String databaseConnectQuery;
 
     public AfterburnerProperties(
-        @Value(value = "${afterburner.name:Afterburner-Anonymous}") final String afterburnerName,
+        @Value(value = "${spring.afterburner.name:AfterburnerReactive}") final String afterburnerName,
         @Value(value = "${afterburner.database.connect.query:SELECT 1}") final String databaseConnectQuery) {
         this.afterburnerName = afterburnerName;
         this.databaseConnectQuery = databaseConnectQuery;
