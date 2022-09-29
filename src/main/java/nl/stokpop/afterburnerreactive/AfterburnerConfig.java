@@ -19,9 +19,13 @@ import reactor.netty.http.client.HttpClient;
 public class AfterburnerConfig {
 
     private final int remotePort;
+    private final String remoteHost;
 
-    public AfterburnerConfig(@Value("${afterburner.remote.port:8181}") int remotePort) {
+    public AfterburnerConfig(
+            @Value("${afterburner.remote.port:8181}") int remotePort,
+            @Value("${afterburner.remote.host:http://localhost}") String remoteHost) {
         this.remotePort = remotePort;
+        this.remoteHost = remoteHost;
     }
 
     @Bean
@@ -42,7 +46,7 @@ public class AfterburnerConfig {
         };
 
         return builder
-            .baseUrl("http://localhost:" + remotePort)
+            .baseUrl(String.join(":", remoteHost, String.valueOf(remotePort)))
             .clientConnector(connector)
             .filter(logRequest())
             .filter(logResponse())
