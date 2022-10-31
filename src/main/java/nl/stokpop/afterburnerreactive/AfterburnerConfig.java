@@ -14,6 +14,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
+import java.util.NoSuchElementException;
+
 @Configuration
 @Log4j2
 public class AfterburnerConfig {
@@ -45,8 +47,10 @@ public class AfterburnerConfig {
             return nextFilter.exchange(request);
         };
 
+        String host = String.join(":", remoteHost, String.valueOf(remotePort));
+
         return builder
-            .baseUrl(String.join(":", remoteHost, String.valueOf(remotePort)))
+            .baseUrl(host)
             .clientConnector(connector)
             .filter(logRequest())
             .filter(logResponse())
@@ -56,15 +60,20 @@ public class AfterburnerConfig {
     ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(request -> {
             log.info("hi request {}", request.url());
-            return Mono.just(request).subscriberContext(context -> context.put("stokpop-starttime", System.currentTimeMillis()));
+            return Mono.just(request).contextWrite(context -> context.put("stokpop-start-time", System.currentTimeMillis()));
         });
     }
 
     ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(response -> {
             log.info("hi response {}", response.statusCode());
-            return Mono.just(response).subscriberContext( context -> {
-                log.info("duration millis: {}", System.currentTimeMillis() - (Long)context.get("stokpop-starttime"));
+            return Mono.just(response).contextWrite(context -> {
+                try {
+                    Long startTime = context.get("stokpop-start-time");
+                    log.info("duration millis: {}", System.currentTimeMillis() - startTime);
+                } catch (NoSuchElementException e) {
+                    log.debug("no stokpop-start-time found in context, cannot calculate duration");
+                }
                 return context;
             });
         });

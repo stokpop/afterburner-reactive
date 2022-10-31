@@ -82,10 +82,11 @@ public class AfterburnerService {
             .mapToObj(i -> path.replace("XYZ", String.valueOf(i * 100)));
 
         return Flux.fromStream(paths)
-            .parallel()
-            .runOn(Schedulers.boundedElastic())
-            .flatMap(this::remoteCall)
-            .sequential();
+                    //.parallel()
+                //.runOn(Schedulers.parallel())
+                    //.subscribeOn(Schedulers.boundedElastic())
+                    .flatMap(this::remoteCall);
+                // .sequential();
     }
 
     public Mono<SystemInfo> systemInfo() {
